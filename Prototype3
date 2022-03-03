@@ -1,0 +1,96 @@
+#include "Adafruit_VL53L0X.h"
+
+Adafruit_VL53L0X lox = Adafruit_VL53L0X();
+
+
+//PWM test for continuous motion Servo
+
+ int servoPin = 9; 
+ int servoPin1 = 11;
+ int pwmVal = 0; // declare pulse width modulation value
+
+
+
+void setup() {
+  pinMode(servoPin, OUTPUT); //set up the servoPin as an output pin
+  pinMode(servoPin1, OUTPUT);
+  Serial.begin(9600); 
+  
+
+  // wait until serial port opens for native USB devices
+  while (! Serial) {
+    delay(1);
+}
+  Serial.println("Adafruit VL53L0X test");
+  if (!lox.begin()) {
+    Serial.println(F("Failed to boot VL53L0X"));
+    while(1);
+  }
+  // power
+  Serial.println(F("VL53L0X API Simple Ranging example\n\n"));
+}
+
+void loop(void) {
+  //assign a static pwm value
+  pwmVal = 0;
+  analogWrite(servoPin, pwmVal);
+  analogWrite(servoPin1, pwmVal);
+  VL53L0X_RangingMeasurementData_t measure;
+   
+  Serial.print("Reading a measurement... ");
+  lox.rangingTest(&measure, false); 
+
+  if (measure.RangeStatus != 6) {  // phase failures have incorrect data
+    while(measure.RangeMilliMeter > 152.4){
+      Serial.print("Distance (mm): "); Serial.println(measure.RangeMilliMeter);
+      lox.rangingTest(&measure, false); 
+      analogWrite(servoPin, pwmVal);
+      analogWrite(servoPin1, 180 - pwmVal);
+      if(pwmVal <= 1 ){
+              pwmVal += 1;
+
+      }else {
+        pwmVal = 0;
+      }
+      delay(10);
+    }
+  } else {
+    Serial.println(" out of range ");
+  }
+  //Stops the vehical for 1 second
+  Drive(0,0);
+  delay(1000);
+  //Turns the left wheel for .78 second
+  Turn()
+}
+
+void Turn(){
+    int randNumber = random(0,2);
+    
+    if(randNumer == 0){
+        //Turns the left wheel for .78 second
+        Drive(0,180);
+        delay(780);
+    } else {
+        //Turns the right wheel for .78 second
+        Drive(180,0);
+        delay(780);
+    }
+}
+
+
+
+void Drive(int leftServoSpeed, int rightServoSpeed) {
+
+  if (leftServoSpeed < 0) {leftServoSpeed = 0;}     
+  else if (leftServoSpeed > 180) {leftServoSpeed = 180;}
+
+  if (rightServoSpeed < 0) {rightServoSpeed = 0;}     
+  else if (rightServoSpeed > 180) {rightServoSpeed = 180;}
+
+  //Send the command to the servos
+  analogWrite(servoPin, leftServoSpeed);
+  analogWrite(servoPin1, rightServoSpeed);
+}
+
+
